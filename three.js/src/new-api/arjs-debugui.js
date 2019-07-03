@@ -162,7 +162,7 @@ ARjs.AnchorDebugUI = function(arAnchor){
 			if( ARjs.AnchorDebugUI.MarkersAreaLearnerURL !== null ){
 				var learnerURL = ARjs.AnchorDebugUI.MarkersAreaLearnerURL
 			}else{
-				var learnerURL = ARjs.Context.baseURL + 'examples/multi-markers/examples/learner.html'
+				var learnerURL = '../../examples/multi-markers/examples/learner.html'
 			}
 			ARjs.MarkersAreaUtils.navigateToLearnerPage(learnerURL, trackingBackend)
 		})	
