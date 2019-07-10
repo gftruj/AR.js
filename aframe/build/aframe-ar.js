@@ -6875,7 +6875,7 @@ ARjs.AnchorDebugUI = function(arAnchor){
 			}else{
 				var learnerURL = ARjs.Context.baseURL + 'examples/multi-markers/examples/learner.html'
 			}
-			ARjs.MarkersAreaUtils.navigateToLearnerPage(learnerURL, trackingBackend)
+			ARjs.MarkersAreaUtils.navigateToLearnerPage(learnerURL, trackingBackend, arAnchor.parameters.patternUrl)
 		})	
 	}
 
@@ -7990,13 +7990,14 @@ ARjs.MarkersAreaUtils = THREEx.ArMultiMarkerUtils = {}
  * Navigate to the multi-marker learner page
  * 
  * @param {String} learnerBaseURL  - the base url for the learner
+ * @param {String} pattern urls separated with a comma
  * @param {String} trackingBackend - the tracking backend to use
  */
-ARjs.MarkersAreaUtils.navigateToLearnerPage = function(learnerBaseURL, trackingBackend){
+ARjs.MarkersAreaUtils.navigateToLearnerPage = function(learnerBaseURL, trackingBackend, patternUrls){
 	var learnerParameters = {
 		backURL : location.href,
 		trackingBackend: trackingBackend,
-		markersControlsParameters: ARjs.MarkersAreaUtils.createDefaultMarkersControlsParameters(trackingBackend),
+		markersControlsParameters: ARjs.MarkersAreaUtils.createMarkersControlsParameters(trackingBackend, patternUrls),
 	}
 	location.href = learnerBaseURL + '?' + encodeURIComponent(JSON.stringify(learnerParameters))
 }
@@ -8059,6 +8060,37 @@ ARjs.MarkersAreaUtils.createDefaultMultiMarkerFile = function(trackingBackend){
 	// json.strinfy the value and store it in localStorage
 	return file
 }
+
+//////////////////////////////////////////////////////////////////////////////
+//		createMarkersControlsParameters
+//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Create controls parameters for the multi-marker learner. If no urls provided, use defaults
+ *
+ * @param {String} trackingBackend - the tracking backend to use
+ * @param {String} pattern urls separated with a comma
+ * @return {Object} - json object containing the controls parameters
+ */
+ARjs.MarkersAreaUtils.createMarkersControlsParameters = function(trackingBackend, patternUrls) {
+	// if there is no url list - use the defaults
+	if ( !patternUrls || patternUrls.indexOf(',') === -1 ) {
+		return ARjs.MarkersAreaUtils.createDefaultMarkersControlsParameters(trackingBackend)
+	}
+
+	// if there is a list specified - use the urls to create a custom markerControlsParameters object
+	var markerControlsParameters = []
+	var urlList = patternUrls.split(",")
+	urlList.forEach(function (url) {
+		var markerControlsParameterObject = {
+			type : 'pattern',
+			patternUrl : url,
+		}
+		markerControlsParameters.push(markerControlsParameterObject)
+	})
+	return markerControlsParameters
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
 //		createDefaultMarkersControlsParameters
@@ -8283,6 +8315,7 @@ AFRAME.registerComponent('arjs-anchor', {
 		},
 		patternUrl: {
 			type: 'string',
+			default: '',
 		},
 		barcodeValue: {
 			type: 'number'
@@ -8360,9 +8393,13 @@ AFRAME.registerComponent('arjs-anchor', {
 				markerParameters.patternUrl = THREEx.ArToolkitContext.baseURL+'examples/marker-training/examples/pattern-files/pattern-kanji.patt'
 				markerParameters.markersAreaEnabled = false
 			}else if( _this.data.preset === 'area' ){
-				markerParameters.type = 'barcode'
-				markerParameters.barcodeValue = 1001
-				markerParameters.markersAreaEnabled = true
+				if (_this.data.patternUrl !== '') {
+					markerParameters.patternUrl = _this.data.patternUrl
+				}else {
+					markerParameters.type = 'barcode'
+					markerParameters.barcodeValue = 1001
+					markerParameters.markersAreaEnabled = true
+				}
 			}else if( _this.data.type === 'barcode' ){
 				markerParameters = {
 					type:               _this.data.type,
@@ -8701,6 +8738,10 @@ AFRAME.registerSystem('arjs', {
 			type: 'number',
 			default: -1
 		},
+		areaLearnerUrl : {
+			type: 'string',
+			default: ''
+		}
 	},
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -8856,6 +8897,9 @@ AFRAME.registerSystem('arjs', {
 				// create sessionDebugUI
 				var sessionDebugUI = new ARjs.SessionDebugUI(arSession)
 				containerElement.appendChild(sessionDebugUI.domElement)
+
+				// set the learner url if provided
+				if ( _this.data.areaLearnerUrl !== '' ) ARjs.AnchorDebugUI.MarkersAreaLearnerURL = _this.data.areaLearnerUrl
 			}
 		})
 
